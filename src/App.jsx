@@ -104,6 +104,7 @@ const ChatMessage = ({ message }) => {
     if (type !== 'tool_output') return false;
     try {
       const parsed = JSON.parse(tool_data.content);
+      console.log(parsed);
       return parsed && !!parsed.chart;
     } catch (e) {
       return false;
@@ -168,28 +169,61 @@ const ChatMessage = ({ message }) => {
         dataSource = tool_data.data_source;
       }
 
+      // Cek dulu apakah ada object "chart"
       if (parsedContent && parsedContent.chart) {
-        return (
-          <div className="text-xs text-gray-500 bg-green-50 p-2 rounded-md border border-green-200">
-            <div
-              className="flex items-center gap-2 font-semibold cursor-pointer"
-              onClick={() => setIsExpanded(!isExpanded)}
-            >
-              <ChevronsRight
-                className={`w-4 h-4 text-green-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-              />
-              <span>Hasil Alat <code className="font-mono bg-gray-200 px-1 rounded">{tool_data.name}</code>:</span>
-            </div>
-            {isExpanded && (
-              <div>
-                <VegaChart spec={parsedContent.chart} />
-                <DataSourceInfo dataSource={dataSource} />
+        const chartObject = parsedContent.chart;
+
+        // SEKARANG, cek di dalam object "chart" tersebut, apakah formatnya PNG
+        if (chartObject.format === 'png' && chartObject.data) {
+          // Render sebagai gambar jika formatnya PNG
+          return (
+            <div className="text-xs text-gray-500 bg-green-50 p-2 rounded-md border border-green-200">
+              <div
+                className="flex items-center gap-2 font-semibold cursor-pointer"
+                onClick={() => setIsExpanded(!isExpanded)}
+              >
+                <ChevronsRight
+                  className={`w-4 h-4 text-green-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                />
+                <span>Hasil Alat <code className="font-mono bg-gray-200 px-1 rounded">{tool_data.name}</code>: Gambar</span>
               </div>
-            )}
-          </div>
-        );
+              {isExpanded && (
+                <div>
+                  <img 
+                    src={`data:image/png;base64,${chartObject.data}`}
+                    alt={`Gambar yang dihasilkan oleh ${tool_data.name}`}
+                    className="mt-2 rounded border border-gray-200 bg-white"
+                  />
+                  <DataSourceInfo dataSource={dataSource} />
+                </div>
+              )}
+            </div>
+          );
+        } else {
+          // Jika bukan PNG, anggap sebagai grafik Vega-Lite
+          return (
+            <div className="text-xs text-gray-500 bg-green-50 p-2 rounded-md border border-green-200">
+              <div
+                className="flex items-center gap-2 font-semibold cursor-pointer"
+                onClick={() => setIsExpanded(!isExpanded)}
+              >
+                <ChevronsRight
+                  className={`w-4 h-4 text-green-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                />
+                <span>Hasil Alat <code className="font-mono bg-gray-200 px-1 rounded">{tool_data.name}</code>:</span>
+              </div>
+              {isExpanded && (
+                <div>
+                  <VegaChart spec={parsedContent.chart} />
+                  <DataSourceInfo dataSource={dataSource} />
+                </div>
+              )}
+            </div>
+          );
+        }
       }
 
+      // Fallback untuk output alat berupa teks biasa (jika tidak ada object "chart")
       return (
         <div className="text-xs text-gray-500 bg-green-50 p-2 rounded-md border border-green-200">
           <div
